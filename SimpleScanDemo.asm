@@ -104,9 +104,36 @@ InfLoop:
 	JUMP   InfLoop
 	; note that the movement API will still be running during this
 	; infinite loop, because it uses the timer interrupt.
-	
-	
 
+;***************************************************************
+;* End Main Method
+;***************************************************************
+;***************************************************************
+;* User Functions
+;***************************************************************
+
+; TurnUntilGap Description Comment
+TurnUntilGap:
+    RETURN
+
+; TurnUntilThing Description Comment
+TurnUntilThing:
+    RETURN
+
+; OrientLeft will orient the robot s.t. it is facing left on the
+; field, on the assumption that TurnUntilThing has been successfully
+; called.
+OrientLeft:
+    RETURN
+
+; DriveHome Description Comment
+DriveHome:
+    RETURN
+    
+
+;***************************************************************
+;* End User Functions
+;***************************************************************
 ; AcquireData will turn the robot counterclockwise and record
 ; 360 sonar values in memory.  The movement API must be disabled
 ; before calling this subroutine.
