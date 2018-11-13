@@ -113,7 +113,14 @@ InfLoop:
 ;***************************************************************
 
 ; TurnUntilGap Description Comment
+; Start State,The Bot is put into a random location of the starting area.
+; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
+ROTATE
+	LOAD   FSlow
+	STORE  AVal
+	CALL TurnVel;
+	
     RETURN
 
 ; TurnUntilThing Description Comment
