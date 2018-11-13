@@ -143,7 +143,39 @@ TurnUntilThing:
 ; field, on the assumption that TurnUntilThing has been successfully
 ; called.
 OrientLeft:
-    RETURN
+        CALL   GetRHSDist
+	    SUB    MaxDist
+	    JNEG   OLP2        ; If RHS Dist is not max, move on
+	    LOAD   FSlow       ; Turn CCW at slow speed
+	    STORE  AVel
+	    CALL   TurnVel
+	    JUMP   OrientLeft  ; Loop back and check RHS Dist again
+	OLP2:
+	    Call   GetRHSDist
+	    SUB    MaxDist
+	    JZERO  OLP3        ; Break loop when nothing detected on RHS
+        OLDistMoved:   DW 0
+		OLConstDist:   DW 20      ; TODO-- CHANGE THIS VALUE
+		LOAD   OLDistMoved
+		SUB    OLConstDist
+		JNEG   OLP3        ; Break loop when distance travelled is far
+	    LOAD   FSlow       ; Drive Forward
+	    STORE  DVel
+	    LOADI  0
+	    STORE  DTheta
+	    ControlMovement
+		; TODO-- Record distance moved
+		JUMP   OLP2        ; Loop back and check RHS sense & distance
+	OLP3:
+	    Call   GetRHSDist
+		SUB    MaxDist
+		JNEG   OLRet       ; If detect RHS, return.
+		LOAD   FSlow       ; Turn CCW until sensor detects sthg
+		STORE  AVel
+		CALL   TurnVel
+		JUMP   OLP3        ; Loop back and check RHS sense
+    OLRet:
+        RETURN
 
 ; DriveHome Description Comment
 DriveHome:
@@ -899,6 +931,9 @@ Seven:    DW 7
 Eight:    DW 8
 Nine:     DW 9
 Ten:      DW 10
+
+; Sonar max distance
+MaxDist   DW &H7FFF
 
 ; Some bit masks.
 ; Masks of multiple bits can be constructed by ORing these
