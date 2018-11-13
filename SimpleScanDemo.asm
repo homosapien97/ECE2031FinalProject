@@ -134,6 +134,18 @@ DriveHome:
 ;***************************************************************
 ;* End User Functions
 ;***************************************************************
+
+; GetRHSDist enables sonar 5 and stores its value both in AC and
+; in RHSDist
+GetRHSDist:
+    LOAD   MASK5
+	OUT    SONAREN
+	IN     DIST5
+	STORE  RHSDist
+	RETURN
+    RHSDist:   DW 0
+
+
 ; AcquireData will turn the robot counterclockwise and record
 ; 360 sonar values in memory.  The movement API must be disabled
 ; before calling this subroutine.
