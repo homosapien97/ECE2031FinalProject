@@ -116,13 +116,25 @@ InfLoop:
 ; Start State,The Bot is put into a random location of the starting area.
 ; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
-ROTATE
-	LOAD   FSlow
-	STORE  AVal
-	CALL TurnVel;
-	
-    RETURN
-
+	LOAD   FSlow    
+	STORE  AVal	
+	LOADI  0
+	STORE  d16sT        ; preload counter with 0	 
+RotateCont:             ;Jump back here if count is less than 90
+	CALL    TurnVel
+	CALL    GetRHSDist
+	SUBI    MaxDist
+	JNEG    CheckClose  ;Jumps over reset counter
+	LOADI   0
+	STORE   d16sT       ;Reset Counter to Zero
+CheckClose:             ;Increments Counter, and Checks
+	LOAD    d16sT
+	ADDI    1       
+	STORE   d16sT       ;increment counter by 1
+	SUBI    90
+	JNEG RotateCont:    ;Jumps Over
+	Return
+    
 ; TurnUntilThing Description Comment
 TurnUntilThing:
     RETURN
