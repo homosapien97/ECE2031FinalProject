@@ -234,7 +234,17 @@ Forever:
 CTimer_ISR:
 	CALL   ControlMovement
 	RETI   ; return from ISR
-	
+
+; Code to turn in place. If called repeatedly, this code will
+; attempt to turn with speed AVel, where a positive AVel means
+; a counterclockwise turn.
+AVel:      DW 0
+TurnVel:
+	LOAD   AVel
+	OUT    RVELCMD
+	CALL   Neg
+	OUT    LVELCMD
+	RETURN
 	
 ; Control code.  If called repeatedly, this code will attempt
 ; to control the robot to face the angle specified in DTheta
