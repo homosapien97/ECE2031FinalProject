@@ -137,6 +137,26 @@ CheckClose:             ;Increments Counter, and Checks
     
 ; TurnUntilThing Description Comment
 TurnUntilThing:
+    LOAD   FSlow
+    STORE  AVal
+    LOADI  0
+    STORE  d16sT
+RotateRight:
+    Call   GetRHSDist
+    SUB    MaxDist
+    JSUB   OrientHome
+    LOAD   RSlow
+    STORE  AVel
+    CALL   TurnVel
+    JUMP   RotateRight
+OrientHome:
+    LOADI  90
+    STORE  DTheta
+    LOADI  -100
+    STORE  DVel
+MovementLoop:
+    CALL ControlMovement
+    JUMP MovementLoop
     RETURN
 
 ; OrientLeft will orient the robot s.t. it is facing left on the
