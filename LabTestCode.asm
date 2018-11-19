@@ -188,11 +188,11 @@ OrientLeft:
 	    JUMP   OrientLeft  ; Loop back and check RHS Dist again
 	OLP2:
         OUT    RESETPOS    ; Reset position tracking
+    OLP2Loop:
 	    CALL   GetRHSDist
 	    SUB    MaxDist
 	    JZERO  OLP3        ; Break loop when nothing detected on RHS
         ;OLDistMoved:   DW 0
-		OLConstDist:   DW 400      ; Magic number
                            ; about the length of my calf in millimeters
 		LOAD   XPOS        ; The distance the robot has moved forward
                            ; according to the odometry stuff
@@ -203,7 +203,7 @@ OrientLeft:
 	    LOADI  0
 	    STORE  DTheta
         CALL   ControlMovement
-		JUMP   OLP2        ; Loop back and check RHS sense & moved dist
+		JUMP   OLP2Loop    ; Loop back and check RHS sense & moved dist
 	OLP3:
 	    Call   GetRHSDist
 		SUB    MaxDist
@@ -214,10 +214,33 @@ OrientLeft:
 		JUMP   OLP3        ; Loop back and check RHS sense
     OLRet:
         RETURN
+OLConstDist:   DW 400      ; Magic number
 
 ; DriveHome Description Comment
 DriveHome:
-    RETURN
+    CALL   GetRHSDist
+    STORE  LastRHSDist     ; Store the current RHS Distance
+    DHLoop:
+        CALL    GetRHSDist
+        SUB     LastRHSDist
+        ADD     MaxRHSDistJump
+        JPOS    DHLoop
+    OUT    RESETPOS
+    DHFinalLoop:
+        LOAD   XPOS
+        SUB    DHFinalDist
+        JPOS   DHRet
+        LOAD   FSlow
+        STORE  DVel
+        LOADI  0
+        STORE  DTheta
+        CALL   ControlMovement
+        JUMP   DHFinalLoop
+    DHRet:
+        RETURN
+MaxRHSDistJump: DW 100 ; 10 ish centimeters TODO Adjust
+LastRHSDist:    DW 0
+DHFinalDist:    DW 100 ; TODO -- Adjust this, magic number
     
 
 ;***************************************************************
