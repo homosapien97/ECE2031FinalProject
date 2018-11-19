@@ -9,7 +9,8 @@
 ORG 0
 	JUMP   Init        ; Reset vector
 	RETI               ; Sonar interrupt (unused)
-	JUMP   CTimer_ISR  ; Timer interrupt
+	;JUMP   CTimer_ISR  ; Timer interrupt
+	RETI
 	RETI               ; UART interrupt (unused)
 	RETI               ; Motor stall interrupt (unused)
 
@@ -96,15 +97,8 @@ Main:
 	;LOADI  100
 	;STORE  DVel
 TestLoop:
-    CALL   GetRHSDist
-    LOAD   FSlow
-    STORE  AVel
-    CALL   TurnVel
-    JUMP   TestLoop
-	Call   TurnUntilThing
-MovementLoop:
-	CALL   ControlMovement
-	JUMP   MovementLoop
+	CALL   OrientLeft
+    CALL   DIE
 	
 
 InfLoop: 
@@ -123,13 +117,13 @@ InfLoop:
 ; Start State,The Bot is put into a random location of the starting area.
 ; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
-	LOAD RSlow				;Load in the speed to turn
+	LOAD FSlow				;Load in the speed to turn
 	STORE AVel				;Get the loaded speed into AVel			
 	CALL TurnVel			;Turn a bit
 	CALL    GetRHSDist		;Get RHSDist into RHSDist
 	LOAD    RHSDist			;Load RHSDist into AC
 	SUB  	MaxDist  		;RHSDist (AC) - Maxdist
-	JNEG    TurnUntilGap	;Continue turning if that is negative
+	JPOS    TurnUntilGap	;Continue turning if that is negative
 	
 	
     
@@ -179,7 +173,7 @@ OrientLeft:
     OLP2Loop:
 	    CALL   GetRHSDist
 	    SUB    MaxDist
-	    JZERO  OLP3        ; Break loop when nothing detected on RHS
+	    JPOS   OLP3        ; Break loop when nothing detected on RHS
         ;OLDistMoved:   DW 0
                            ; about the length of my calf in millimeters
 		LOAD   XPOS        ; The distance the robot has moved forward
@@ -202,7 +196,7 @@ OrientLeft:
 		JUMP   OLP3        ; Loop back and check RHS sense
     OLRet:
         RETURN
-OLConstDist:   DW 400      ; Magic number
+OLConstDist:   DW 800      ; Magic number
 
 ; DriveHome Description Comment
 DriveHome:
@@ -983,7 +977,7 @@ Nine:     DW 9
 Ten:      DW 10
 
 ; Sonar max distance
-MaxDist:   DW &H3FFF
+MaxDist:   DW &H0FFF
 
 ; Some bit masks.
 ; Masks of multiple bits can be constructed by ORing these
