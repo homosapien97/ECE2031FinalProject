@@ -187,21 +187,23 @@ OrientLeft:
 	    CALL   TurnVel
 	    JUMP   OrientLeft  ; Loop back and check RHS Dist again
 	OLP2:
-	    Call   GetRHSDist
+        OUT    RESETPOS    ; Reset position tracking
+	    CALL   GetRHSDist
 	    SUB    MaxDist
 	    JZERO  OLP3        ; Break loop when nothing detected on RHS
-        OLDistMoved:   DW 0
-		OLConstDist:   DW 20      ; TODO-- CHANGE THIS VALUE
-		LOAD   OLDistMoved
+        ;OLDistMoved:   DW 0
+		OLConstDist:   DW 400      ; Magic number
+                           ; about the length of my calf in millimeters
+		LOAD   XPOS        ; The distance the robot has moved forward
+                           ; according to the odometry stuff
 		SUB    OLConstDist
-		JNEG   OLP3        ; Break loop when distance travelled is far
+		JPOS   OLP3        ; Break loop when distance travelled is far
 	    LOAD   FSlow       ; Drive Forward
 	    STORE  DVel
 	    LOADI  0
 	    STORE  DTheta
-	    ;ControlMovement - does this need a CALL functioN!!!!!!!!!!!
-		; TODO-- Record distance moved
-		JUMP   OLP2        ; Loop back and check RHS sense & distance
+        CALL   ControlMovement
+		JUMP   OLP2        ; Loop back and check RHS sense & moved dist
 	OLP3:
 	    Call   GetRHSDist
 		SUB    MaxDist
