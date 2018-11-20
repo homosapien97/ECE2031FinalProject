@@ -97,6 +97,8 @@ Main:
 	;LOADI  100
 	;STORE  DVel
 TestLoop:
+	CALL   TurnUntilGap
+	CALL   TurnUntilThing
 	CALL   OrientLeft
     CALL   DIE
 	
@@ -117,16 +119,36 @@ InfLoop:
 ; Start State,The Bot is put into a random location of the starting area.
 ; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
-        CALL   GetRHSDist
-	    SUB    MaxDist
-	    JNEG   StopIt        ; If RHS Dist < MaxDist (Detected Something), move on
-	    LOAD   FSlow       ; Turn CCW at slow speed
+		CALL    GetRHSDist
+    	CALL	Wait1
+    	LOADI	0
+    	STORE   TugCounter    ;Make sure the Counter is zero
+	TUGLoop:
+	    LOAD   FSlow          ;Turn CCW at slow speed
 	    STORE  AVel
 	    CALL   TurnVel
-	    JUMP   TurnUntilGap  ; Loop back and check RHS Dist again
-StopIt:
-	RETURN
+
 	
+	    CALL   GetRHSDist
+	    SUB    MaxDist
+	    JNEG   IncremIt       ;If RHS Dist > MaxDist (Not Detected Something), move on to reset the counter
+	    LOADI  0
+	    STORE  TugCounter
+	    JUMP   TUGLoop
+
+	IncremIt:
+		LOAD   TugCounter
+		ADDI   1
+		STORE  TugCounter     ;Increment the counter
+		OUT    SSEG2          ;Display the counter
+		ADDI   -90            
+		JPOS   StopIt         ;If TugCounter < 90, move on to loop
+	    JUMP   TUGLoop
+	StopIt:
+		RETURN
+		
+TugCounter:   DW 0
+
     
 ; TurnUntilThing Description Comment
 TurnUntilThing:
@@ -143,7 +165,7 @@ RotateRight:
     CALL   TurnVel
     JUMP   RotateRight
 OrientHome:
-    OUT    RESETPOS
+	OUT	   RESETPOS
     CALL   Wait1
     LOADI  -90
     STORE  DTheta
@@ -235,7 +257,7 @@ GetRHSDist:
     LOAD   MASK5
 	OUT    SONAREN
 	IN     DIST5
-	OUT    SSEG2
+	;OUT    SSEG2
 	STORE  RHSDist
 	RETURN
     RHSDist:   DW 0
