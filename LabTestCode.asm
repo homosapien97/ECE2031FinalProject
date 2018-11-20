@@ -97,7 +97,7 @@ Main:
 	;LOADI  100
 	;STORE  DVel
 TestLoop:
-	CALL   OrientLeft
+	CALL   TurnUntilGap
     CALL   DIE
 	
 
@@ -121,10 +121,9 @@ TurnUntilGap:
 	STORE AVel				;Get the loaded speed into AVel			
 	CALL TurnVel			;Turn a bit
 	CALL    GetRHSDist		;Get RHSDist into RHSDist
-	LOAD    RHSDist			;Load RHSDist into AC
 	SUB  	MaxDist  		;RHSDist (AC) - Maxdist
-	JPOS    TurnUntilGap	;Continue turning if that is negative
-	
+	JNEG    TurnUntilGap	;Continue turning if that is negative
+	RETURN
 	
     
 ; TurnUntilThing Description Comment
@@ -163,21 +162,22 @@ TUTRet:
 OrientLeft:
         CALL   GetRHSDist
 	    SUB    MaxDist
-	    JNEG   OLP2        ; If RHS Dist is not max, move on
+	    JNEG   OLP2        ; If RHS Dist < MaxDist (Detected Something), move on
 	    LOAD   FSlow       ; Turn CCW at slow speed
 	    STORE  AVel
 	    CALL   TurnVel
 	    JUMP   OrientLeft  ; Loop back and check RHS Dist again
 	OLP2:
         OUT    RESETPOS    ; Reset position tracking
+        LOADI  &HFFF       ; DEBUG
+        OUT    SSEG2       ; DEBUG
     OLP2Loop:
 	    CALL   GetRHSDist
 	    SUB    MaxDist
 	    JPOS   OLP3        ; Break loop when nothing detected on RHS
-        ;OLDistMoved:   DW 0
-                           ; about the length of my calf in millimeters
 		LOAD   XPOS        ; The distance the robot has moved forward
                            ; according to the odometry stuff
+        OUT    SSEG2       ; DEBUG
 		SUB    OLConstDist
 		JPOS   OLP3        ; Break loop when distance travelled is far
 	    LOAD   FSlow       ; Drive Forward
@@ -187,6 +187,8 @@ OrientLeft:
         CALL   ControlMovement
 		JUMP   OLP2Loop    ; Loop back and check RHS sense & moved dist
 	OLP3:
+	    LOADI  0           ; DEBUG
+	    OUT    SSEG2       ; DEBUG
 	    Call   GetRHSDist
 		SUB    MaxDist
 		JNEG   OLRet       ; If detect RHS, return.
@@ -235,7 +237,7 @@ GetRHSDist:
     LOAD   MASK5
 	OUT    SONAREN
 	IN     DIST5
-	OUT    SSEG2
+	;OUT    SSEG2
 	STORE  RHSDist
 	RETURN
     RHSDist:   DW 0
