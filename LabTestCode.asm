@@ -97,7 +97,7 @@ Main:
 	;LOADI  100
 	;STORE  DVel
 TestLoop:
-	CALL   TurnUntilGap
+	CALL   OrientLeft
     CALL   DIE
 	
 
@@ -131,7 +131,7 @@ StopIt:
 ; TurnUntilThing Description Comment
 TurnUntilThing:
     LOAD   FSlow
-    STORE  AVel
+    STORE  AVal
     LOADI  0
     STORE  d16sT
 RotateRight:
@@ -171,15 +171,12 @@ OrientLeft:
 	    JUMP   OrientLeft  ; Loop back and check RHS Dist again
 	OLP2:
         OUT    RESETPOS    ; Reset position tracking
-        LOADI  &HFFF       ; DEBUG
-        OUT    SSEG2       ; DEBUG
     OLP2Loop:
 	    CALL   GetRHSDist
 	    SUB    MaxDist
 	    JPOS   OLP3        ; Break loop when nothing detected on RHS
-		LOAD   XPOS        ; The distance the robot has moved forward
+		IN     RPOS        ; The distance the robot has moved forward
                            ; according to the odometry stuff
-        OUT    SSEG2       ; DEBUG
 		SUB    OLConstDist
 		JPOS   OLP3        ; Break loop when distance travelled is far
 	    LOAD   FSlow       ; Drive Forward
@@ -189,8 +186,6 @@ OrientLeft:
         CALL   ControlMovement
 		JUMP   OLP2Loop    ; Loop back and check RHS sense & moved dist
 	OLP3:
-	    LOADI  0           ; DEBUG
-	    OUT    SSEG2       ; DEBUG
 	    Call   GetRHSDist
 		SUB    MaxDist
 		JNEG   OLRet       ; If detect RHS, return.
@@ -200,7 +195,7 @@ OrientLeft:
 		JUMP   OLP3        ; Loop back and check RHS sense
     OLRet:
         RETURN
-OLConstDist:   DW 800      ; Magic number
+OLConstDist:   DW 600      ; Magic number
 
 ; DriveHome Description Comment
 DriveHome:
@@ -239,7 +234,7 @@ GetRHSDist:
     LOAD   MASK5
 	OUT    SONAREN
 	IN     DIST5
-	;OUT    SSEG2
+	OUT    SSEG2
 	STORE  RHSDist
 	RETURN
     RHSDist:   DW 0
@@ -361,7 +356,7 @@ Die:
 	OUT    RVELCMD
 	OUT    SONAREN
 	LOAD   DEAD        ; An indication that we are dead
-	OUT    SSEG2       ; "dEAd" on the sseg
+	;OUT    SSEG2       ; "dEAd" on the sseg
 Forever:
 	JUMP   Forever     ; Do this forever.
 	DEAD:  DW &HDEAD   ; Example of a "local" variable
@@ -1017,6 +1012,7 @@ RFast:    DW -500
 MinBatt:  DW 110       ; 14.0V - minimum safe battery voltage
 I2CWCmd:  DW &H1190    ; write one i2c byte, read one byte, addr 0x90
 I2CRCmd:  DW &H0190    ; write nothing, read one byte, addr 0x90
+AVAL:     DW 0
 
 DataArray:
 	DW 0
