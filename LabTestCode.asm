@@ -117,19 +117,20 @@ InfLoop:
 ; Start State,The Bot is put into a random location of the starting area.
 ; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
-	LOAD FSlow				;Load in the speed to turn
-	STORE AVel				;Get the loaded speed into AVel			
-	CALL TurnVel			;Turn a bit
+	LOAD 	FSlow			;Load in the speed to turn
+	STORE 	AVel			;Get the loaded speed into AVel	
+ContSpin:		
+	CALL 	TurnVel			;Turn a bit
 	CALL    GetRHSDist		;Get RHSDist into RHSDist
 	SUB  	MaxDist  		;RHSDist (AC) - Maxdist
-	JNEG    TurnUntilGap	;Continue turning if that is negative
+	JNEG    ContSpin		;Continue turning if that is negative
 	RETURN
 	
     
 ; TurnUntilThing Description Comment
 TurnUntilThing:
     LOAD   FSlow
-    STORE  AVal
+    STORE  AVel
     LOADI  0
     STORE  d16sT
 RotateRight:
@@ -1015,7 +1016,6 @@ RFast:    DW -500
 MinBatt:  DW 110       ; 14.0V - minimum safe battery voltage
 I2CWCmd:  DW &H1190    ; write one i2c byte, read one byte, addr 0x90
 I2CRCmd:  DW &H0190    ; write nothing, read one byte, addr 0x90
-AVAL:     DW 0
 
 DataArray:
 	DW 0
