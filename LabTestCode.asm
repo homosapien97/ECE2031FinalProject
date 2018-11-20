@@ -117,13 +117,14 @@ InfLoop:
 ; Start State,The Bot is put into a random location of the starting area.
 ; End State, The Bot is guraneeteed to be staring into the void.
 TurnUntilGap:
-	LOAD 	FSlow			;Load in the speed to turn
-	STORE 	AVel			;Get the loaded speed into AVel	
-ContSpin:		
-	CALL 	TurnVel			;Turn a bit
-	CALL    GetRHSDist		;Get RHSDist into RHSDist
-	SUB  	MaxDist  		;RHSDist (AC) - Maxdist
-	JNEG    ContSpin		;Continue turning if that is negative
+        CALL   GetRHSDist
+	    SUB    MaxDist
+	    JNEG   StopIt        ; If RHS Dist < MaxDist (Detected Something), move on
+	    LOAD   FSlow       ; Turn CCW at slow speed
+	    STORE  AVel
+	    CALL   TurnVel
+	    JUMP   TurnUntilGap  ; Loop back and check RHS Dist again
+StopIt:
 	RETURN
 	
     
