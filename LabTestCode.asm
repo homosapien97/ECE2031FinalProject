@@ -143,6 +143,7 @@ RotateRight:
     CALL   TurnVel
     JUMP   RotateRight
 OrientHome:
+    OUT    RESETPOS
     CALL   Wait1
     LOADI  -90
     STORE  DTheta
