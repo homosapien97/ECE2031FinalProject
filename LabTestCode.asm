@@ -9,8 +9,7 @@
 ORG 0
 	JUMP   Init        ; Reset vector
 	RETI               ; Sonar interrupt (unused)
-	;JUMP   CTimer_ISR  ; Timer interrupt
-	RETI
+	RETI;JUMP   CTimer_ISR  ; Timer interrupt
 	RETI               ; UART interrupt (unused)
 	RETI               ; Motor stall interrupt (unused)
 
@@ -65,41 +64,25 @@ WaitForUser:
 ;* Main code
 ;***************************************************************
 Main:
-	;OUT    RESETPOS    ; reset the odometry to 0,0,0
-	; configure timer interrupt for the movement control code
-	;LOADI  10          ; period = (10 ms * 10) = 0.1s, or 10Hz.
-	;OUT    CTIMER      ; turn on timer peripheral
-	
-	;;;; Demo code to acquire sonar data during a rotation
-	;CLI    &B0010      ; disable the movement API interrupt
-	;CALL   AcquireData ; perform a 360 degree scan
-	
-	;;;; Demo code to turn to face the closest object seen
-	; Before enabling the movement control code, set it to
-	; not start moving immediately.
+	;LOADI  &HA
+	;OUT    SSEG1
 	;LOADI  0
-	;STORE  DVel        ; zero desired forward velocity
-	;IN     THETA
-	;STORE  DTheta      ; desired heading = current heading
-	;SEI    &B0010      ; enable interrupts from source 2 (timer)
-	; at this point, timer interrupts will be firing at 10Hz, and
-	; code in that ISR will attempt to control the robot.
-	; If you want to take manual control of the robot,
-	; execute CLI &B0010 to disable the timer interrupt.
-
-	; FindClosest returns the angle to the closest object
-	;CALL   FindClosest
-	;OUT    SSEG2       ; useful debugging info
-	
-	; To turn to that angle using the movement API, just store
-	; the angle into the "desired theta" variable.
-	;STORE  DTheta
-	;LOADI  100
-	;STORE  DVel
-TestLoop:
-	CALL   TurnUntilGap
+	;CALL   TurnUntilGap
+	LOADI  &HB
+	OUT    SSEG1
+	LOADI  0
 	CALL   TurnUntilThing
+	LOADI  &HC
+	OUT    SSEG1
+	LOADI  0
 	CALL   OrientLeft
+	LOADI  &HD
+	OUT    SSEG1
+	LOADI  0
+	CALL   DriveHome
+	LOADI  &HE
+	OUT    SSEG1
+	LOADI  0
     CALL   DIE
 	
 
@@ -111,6 +94,8 @@ InfLoop:
 ;***************************************************************
 ;* End Main Method
 ;***************************************************************
+
+
 ;***************************************************************
 ;* User Functions
 ;***************************************************************
@@ -121,65 +106,64 @@ InfLoop:
 TurnUntilGap:
 		CALL    GetRHSDist
     	CALL	Wait1
-    	LOADI	0
-    	STORE   TugCounter    ;Make sure the Counter is zero
+		OUT     RESETPOS
 	TUGLoop:
 	    LOAD   FSlow          ;Turn CCW at slow speed
 	    STORE  AVel
 	    CALL   TurnVel
-
-	
 	    CALL   GetRHSDist
 	    SUB    MaxDist
-	    JNEG   IncremIt       ;If RHS Dist > MaxDist (Not Detected Something), move on to reset the counter
-	    LOADI  0
-	    STORE  TugCounter
+	    JPOS   IncremIt       ;If RHS Dist > MaxDist (Not Detected Something), increment the counter. 
+	    OUT    RESETPOS		  ;Otherwise reset it.
 	    JUMP   TUGLoop
-
 	IncremIt:
-		LOAD   TugCounter
-		ADDI   1
-		STORE  TugCounter     ;Increment the counter
-		OUT    SSEG2          ;Display the counter
-		ADDI   -90            
+		IN     THETA
+		CALL   ABS
+		OUT    SSEG1
+		ADDI   -60        
 		JPOS   StopIt         ;If TugCounter < 90, move on to loop
 	    JUMP   TUGLoop
 	StopIt:
 		RETURN
-		
-TugCounter:   DW 0
 
     
 ; TurnUntilThing Description Comment
 TurnUntilThing:
-    LOAD   FSlow
-    STORE  AVal
-    LOADI  0
-    STORE  d16sT
-RotateRight:
-    Call   GetRHSDist
-    SUB    MaxDist
-    JNEG   OrientHome
-    LOAD   RSlow
-    STORE  AVel
-    CALL   TurnVel
-    JUMP   RotateRight
-OrientHome:
-	OUT	   RESETPOS
-    CALL   Wait1
-    LOADI  -90
-    STORE  DTheta
-    LOADI  0
-    STORE  DVel
-TUTMovementLoop:
-    CALL ControlMovement
-    CALL GetThetaErr
-    CALL ABS 
-    ADDI -2
-    JNEG TUTRet
-    JUMP TUTMovementLoop
-TUTRet:
-    RETURN
+	RotateRight:
+    	Call   GetRHSDist
+    	SUB    MaxDist
+    	JNEG   RotateWithinThing      ;If RHS Dist < MaxDist (Detected Something) OrientHome
+    	LOAD   RSlow
+    	STORE  AVel
+    	CALL   TurnVel
+    	JUMP   RotateRight
+   	RotateWithinThing:
+   		OUT    RESETPOS
+   		RotateWithinThingLoop:
+   			IN		THETA
+   			CALL	ABS
+   			ADDI	-15
+   			JNEG	OrientHome	;We have detected a real thing, orient home
+   			Call   GetRHSDist
+    		SUB    MaxDist
+    		JNEG   RotateWithinThingLoop ;If RHS Dist < MaxDist (We are still detecting something) Keep rotating
+    		JUMP   RotateRight			; Go back to rotating without keeping track of angle
+	OrientHome:
+		OUT	   RESETPOS
+    	;CALL   Wait1
+    	LOADI  -90
+    	STORE  DTheta
+    	LOADI  0
+    	STORE  DVel
+	TUTMovementLoop:
+    	CALL ControlMovement
+    	CALL GetThetaErr
+    	CALL ABS 
+    	ADDI -2
+    	JNEG TUTRet
+    	JUMP TUTMovementLoop
+	TUTRet:
+    	RETURN
 
 ; OrientLeft will orient the robot s.t. it is facing left on the
 ; field, on the assumption that TurnUntilThing has been successfully
@@ -222,14 +206,20 @@ OLConstDist:   DW 600      ; Magic number
 
 ; DriveHome Description Comment
 DriveHome:
-    CALL   GetRHSDist
-    STORE  LastRHSDist     ; Store the current RHS Distance
+    	CALL   GetRHSDist
+    	STORE  LastRHSDist     ; Store the current RHS Distance
     DHLoop:
+    	LOAD   FSlow
+        STORE  DVel
+        LOADI  0
+        STORE  DTheta
+        CALL   ControlMovement
         CALL    GetRHSDist
         SUB     LastRHSDist
         ADD     MaxRHSDistJump
         JPOS    DHLoop
-    OUT    RESETPOS
+    
+    	OUT    RESETPOS
     DHFinalLoop:
         LOAD   XPOS
         SUB    DHFinalDist
@@ -257,7 +247,7 @@ GetRHSDist:
     LOAD   MASK5
 	OUT    SONAREN
 	IN     DIST5
-	;OUT    SSEG2
+	OUT    SSEG2
 	STORE  RHSDist
 	RETURN
     RHSDist:   DW 0
@@ -325,10 +315,10 @@ ADStore:
 	JNEG   ADWait
 	RETURN ; done
 	
-	ArrayIndex: DW 0
-	OrigTheta: DW 0
-	CurrTheta: DW 0
-	TurnTracker: DW 0
+	ArrayIndex:		DW 0
+	OrigTheta:		DW 0
+	CurrTheta:		DW 0
+	TurnTracker:	DW 0
 	
 ; FindClosest subroutine will go through the acquired data
 ; and return the angle of the closest sonar reading.
@@ -379,7 +369,7 @@ Die:
 	OUT    RVELCMD
 	OUT    SONAREN
 	LOAD   DEAD        ; An indication that we are dead
-	;OUT    SSEG2       ; "dEAd" on the sseg
+	OUT    SSEG2       ; "dEAd" on the sseg
 Forever:
 	JUMP   Forever     ; Do this forever.
 	DEAD:  DW &HDEAD   ; Example of a "local" variable
@@ -1035,7 +1025,6 @@ RFast:    DW -500
 MinBatt:  DW 110       ; 14.0V - minimum safe battery voltage
 I2CWCmd:  DW &H1190    ; write one i2c byte, read one byte, addr 0x90
 I2CRCmd:  DW &H0190    ; write nothing, read one byte, addr 0x90
-AVAL:     DW 0
 
 DataArray:
 	DW 0
