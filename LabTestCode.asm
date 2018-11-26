@@ -64,10 +64,10 @@ WaitForUser:
 ;* Main code
 ;***************************************************************
 Main:
-	;LOADI  &HA
-	;OUT    SSEG1
-	;LOADI  0
-	;CALL   TurnUntilGap
+	LOADI  &HA
+	OUT    SSEG1
+	LOADI  0
+	CALL   TurnUntilGap
 	LOADI  &HB
 	OUT    SSEG1
 	LOADI  0
@@ -121,12 +121,50 @@ TurnUntilGap:
 		CALL   ABS
 		OUT    SSEG1
 		ADDI   -60        
-		JPOS   StopIt         ;If TugCounter < 90, move on to loop
+		JPOS   StopIt         ;If turned < 60, move on to loop
 	    JUMP   TUGLoop
 	StopIt:
 		RETURN
+		
 
-    
+TurnUntilGap2:
+		CALL	GetRHSDist			;Make sure sonar is initialized
+		CALL	Wait1
+	TUG2Reset:
+		OUT		RESETPOS			;Reset the angle tracking
+	TUG2BigLoop:					;do {
+		CALL	GetRHSDist				;if(!detect)
+		SUB		MaxDist						;goto TUG2Turn
+		JPOS	TUG2Turn				;else {
+			IN		THETA					;TUG2ipos = THETA
+			STORE	TUG2ipos
+			TUG2SmallLoop:					;while(detect) {
+				CALL	GetRHSDist
+				SUB		MaxDist
+				JPOS	TUG2Turn
+				;Turning Code Here				;turn()
+				IN		THETA					;if(THETA-TUG2ipos<TUG2smallAngle){
+				SUB		TUG2ipos					;continue
+				SUB		TUG2smallAngle			;}
+				JNEG	TUG2SmallLoop			;else {
+					TUG2SmallestLoop:				;do {
+						;Turning Code Here				;turn()
+						CALL	GetRHSDist			;} while(detect)
+						SUB		MaxDist
+						JNEG	TUG2SmallestLoop
+					JUMP	TUG2Reset				;goto TUG2Reset
+												;}
+											;}
+		TUG2Turn:						;}
+			;Turning Code Here			;turn()				
+		IN		THETA				;} while(THETA < TUG2largeAngle)
+		SUB		TUG2largeAngle
+		JNEG	TUG2BigLoop
+	RETURN							; return
+
+TUG2ipos:		DW	0
+TUG2smallAngle:	DW	15
+TUG2largeAngle: DW  60
 ; TurnUntilThing Description Comment
 TurnUntilThing:
 	RotateRight:
@@ -140,9 +178,11 @@ TurnUntilThing:
    	RotateWithinThing:
    		OUT    RESETPOS
    		RotateWithinThingLoop:
+   			LOADI 	&H8			;DEBUG
+   			OUT		SSEG1		;DEBUG
    			IN		THETA
    			CALL	ABS
-   			ADDI	-15
+   			ADDI	-20
    			JNEG	OrientHome	;We have detected a real thing, orient home
    			Call   GetRHSDist
     		SUB    MaxDist
