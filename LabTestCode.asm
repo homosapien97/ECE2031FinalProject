@@ -67,7 +67,7 @@ Main:
 	LOADI  &HA
 	OUT    SSEG1
 	LOADI  0
-	CALL   TurnUntilGap
+	CALL   TurnUntilGap2
 	LOADI  &HB
 	OUT    SSEG1
 	LOADI  0
@@ -142,13 +142,17 @@ TurnUntilGap2:
 				CALL	GetRHSDist
 				SUB		MaxDist
 				JPOS	TUG2Turn
-				;Turning Code Here				;turn()
+				LOAD   FSlow         			;turn()
+	    		STORE  AVel
+	    		CALL   TurnVel
 				IN		THETA					;if(THETA-TUG2ipos<TUG2smallAngle){
 				SUB		TUG2ipos					;continue
 				SUB		TUG2smallAngle			;}
 				JNEG	TUG2SmallLoop			;else {
 					TUG2SmallestLoop:				;do {
-						;Turning Code Here				;turn()
+						LOAD   FSlow          			;turn()
+	   					STORE  AVel
+	    				CALL   TurnVel
 						CALL	GetRHSDist			;} while(detect)
 						SUB		MaxDist
 						JNEG	TUG2SmallestLoop
@@ -156,21 +160,24 @@ TurnUntilGap2:
 												;}
 											;}
 		TUG2Turn:						;}
-			;Turning Code Here			;turn()				
+			LOAD   FSlow          		;turn()
+	    	STORE  AVel
+	    	CALL   TurnVel				
 		IN		THETA				;} while(THETA < TUG2largeAngle)
 		SUB		TUG2largeAngle
 		JNEG	TUG2BigLoop
 	RETURN							; return
 
-TUG2ipos:		DW	0
-TUG2smallAngle:	DW	15
-TUG2largeAngle: DW  60
+	TUG2ipos:		DW	0
+	TUG2smallAngle:	DW	15
+	TUG2largeAngle: DW  60
+
 ; TurnUntilThing Description Comment
 TurnUntilThing:
 	RotateRight:
     	Call   GetRHSDist
     	SUB    MaxDist
-    	JNEG   RotateWithinThing      ;If RHS Dist < MaxDist (Detected Something) OrientHome
+    	JNEG   RotateWithinThing      ;If RHS Dist < MaxDist (Detected Something) RotateWithinThing
     	LOAD   RSlow
     	STORE  AVel
     	CALL   TurnVel
@@ -182,13 +189,15 @@ TurnUntilThing:
    			OUT		SSEG1		;DEBUG
    			IN		THETA
    			CALL	ABS
-   			ADDI	-20
+   			ADDI	-45
    			JNEG	OrientHome	;We have detected a real thing, orient home
    			Call   GetRHSDist
     		SUB    MaxDist
     		JNEG   RotateWithinThingLoop ;If RHS Dist < MaxDist (We are still detecting something) Keep rotating
-    		JUMP   RotateRight			; Go back to rotating without keeping track of angle
+    		JUMP   RotateWithinThing ;RotateRight			; Go back to rotating without keeping track of angle
 	OrientHome:
+		LOADI	7		;DEBUG
+		OUT		SSEG1	;DEBUG 
 		OUT	   RESETPOS
     	;CALL   Wait1
     	LOADI  -90
@@ -226,7 +235,7 @@ OrientLeft:
                            ; according to the odometry stuff
 		SUB    OLConstDist
 		JPOS   OLP3        ; Break loop when distance travelled is far
-	    LOAD   FSlow       ; Drive Forward
+	    LOAD   FMid       ; Drive Forward
 	    STORE  DVel
 	    LOADI  0
 	    STORE  DTheta
@@ -236,11 +245,14 @@ OrientLeft:
 	    Call   GetRHSDist
 		SUB    MaxDist
 		JNEG   OLRet       ; If detect RHS, return.
-		LOAD   FSlow       ; Turn CCW until sensor detects sthg
+		LOAD   FFast       ; Turn CCW until sensor detects sthg
 		STORE  AVel
 		CALL   TurnVel
 		JUMP   OLP3        ; Loop back and check RHS sense
     OLRet:
+    	LOADI	0
+    	STORE	AVel
+    	CALL	TurnVel
         RETURN
 OLConstDist:   DW 600      ; Magic number
 
@@ -261,7 +273,11 @@ DriveHome:
     
     	OUT    RESETPOS
     DHFinalLoop:
-        LOAD   XPOS
+        IN     XPOS
+        SUB    DHFinalDist
+        CALL   ABS
+        OUT	   SSEG2	;DEBUG
+        IN     XPOS
         SUB    DHFinalDist
         JPOS   DHRet
         LOAD   FSlow
@@ -274,7 +290,7 @@ DriveHome:
         RETURN
 MaxRHSDistJump: DW 100 ; 10 ish centimeters TODO Adjust
 LastRHSDist:    DW 0
-DHFinalDist:    DW 100 ; TODO -- Adjust this, magic number
+DHFinalDist:    DW 400 ; TODO -- Adjust this, magic number
     
 
 ;***************************************************************
@@ -1029,7 +1045,7 @@ Nine:     DW 9
 Ten:      DW 10
 
 ; Sonar max distance
-MaxDist:   DW &H0FFF
+MaxDist:   DW &H0E00
 
 ; Some bit masks.
 ; Masks of multiple bits can be constructed by ORing these
